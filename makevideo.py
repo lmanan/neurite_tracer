@@ -5,14 +5,15 @@ from PIL import Image
 import matplotlib.cm as cm
 import numpy as np
 
-filepath = "/Volumes/T7 Shield/20240503/Experiment-144.czi"
+filepath = '/group/dl4miacourse/projects/neurite_trace/#####/Experiment-144.czi'
 
 x_size = 500
 y_size = 500
-x_part_num = 4
-y_part_num = 4
-tile_margin_x = 157
-tile_margin_y = 155
+x_tile_num = 4
+y_tile_num = 4
+tile_margin_x = 139
+tile_margin_y = 143
+time_channel = 145
 
 scene_of_interest = [9]
 
@@ -24,16 +25,27 @@ with pyczi.open_czi(filepath) as czidoc:
     for scene_id in scene_of_interest:
         scene = scenes_bounding[scene_id]
 
-        # heal stitching
-        x_width = scene[2] // x_part_num
-        y_width = scene[3] // y_part_num
+        x_width = scene[2] // x_tile_num #  tiles width
+        y_width = scene[3] // y_tile_num #  tiles height
 
-        for y_tile in range(y_part_num):
-            for x_tile in range(x_part_num):
+        for y_tile in range(y_tile_num):
+            for x_tile in range(x_tile_num):
                 left = scene[0] + (x_tile * x_width)
                 upper = scene[1] + (y_tile * y_width)
                 box = (left + tile_margin_x, upper + tile_margin_y, x_width - tile_margin_x * 2, y_width - tile_margin_y * 2)
-                for moment in range(145):
+                for time_point in range(time_channel):
+                    center_tile = czidoc.read(plane={"T": time_point, "Z": 3, "C": 0}, roi=box)
+                    print(center_tile.shape) 
+                    
+                    crop_array = center_tile.reshape(6, 256, 4, 256).swapaxes(1, 2) #
+                    # crop_0_0 = crop_array[0, 0] #
+                    crops = [crop_array[i, j] for i in range(crop_array.shape[0]) for j in range(crop_array.shape[1])] 
+                    for count, crop in enumerate(crops):
+                        file_name = 'scene_' + scene_id + '_tile_' + x_tile + '_' + y_tile + '_crop_' + count + '_time_' + time_point'.tiff'
+                        im = Image.fromarray(np.squeeze(crop, axis=2))
+                        im.save("/group/dl4miacourse/projects/neurite_trace/##/" + file_name)
+                
+ """                for moment in range(145):
                     if x_tile == 0:
                         frame_0 = czidoc.read(plane={"T": moment, "Z": 3, "C": 0}, roi=box)
                         fig, ax = plt.subplots(1, 1, figsize=(15, 15))
@@ -67,4 +79,4 @@ with pyczi.open_czi(filepath) as czidoc:
                 plt.show()
                 k=3
 
-k = 3
+k = 3 """
